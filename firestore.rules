@@ -1,0 +1,45 @@
+rules_version = '2';
+service cloud.firestore {
+ match /databases/{database}/documents {
+  function signedIn() { return request.auth != null; }
+  function verifiedParent(data) {
+   return signedIn() && request.auth.token.get('email_verified', false) == true && request.auth.token.get('email', '') in data.parentEmails;
+  }
+  function family(id) { return get(/databases/$(database)/documents/families/$(id)).data; }
+  match /families/{id} {
+   allow create: if signedIn() && request.auth.token.email_verified == true
+    && request.resource.data.keys().hasOnly(['ownerUid','parentEmails','childUid','pairToken'])
+    && request.resource.data.ownerUid == request.auth.uid
+    && request.resource.data.parentEmails == [request.auth.token.email]
+    && request.resource.data.childUid == null
+    && request.resource.data.pairToken is string && request.resource.data.pairToken.size() >= 40;
+   allow get: if verifiedParent(resource.data) || (signedIn() && resource.data.childUid == request.auth.uid);
+   allow list, delete: if false;
+   allow update: if (
+    verifiedParent(resource.data) && resource.data.ownerUid == request.auth.uid
+    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['parentEmails','pairToken','childUid'])
+    && request.resource.data.parentEmails is list && request.resource.data.parentEmails.size() <= 2
+    && request.resource.data.parentEmails.size() >= 1
+    && request.auth.token.email in request.resource.data.parentEmails
+    && (request.resource.data.childUid == resource.data.childUid || request.resource.data.childUid == null)
+    && (request.resource.data.pairToken == null || (request.resource.data.pairToken is string && request.resource.data.pairToken.size() >= 40))
+   ) || (
+    signedIn() && request.auth.token.firebase.sign_in_provider == 'anonymous'
+    && resource.data.childUid == null && resource.data.pairToken is string
+    && request.resource.data.diff(resource.data).affectedKeys().hasOnly(['childUid','pairToken','pairingProof'])
+    && request.resource.data.childUid == request.auth.uid
+    && request.resource.data.pairingProof == resource.data.pairToken
+    && request.resource.data.pairToken == null
+   );
+   match /progress/{progressId} {
+    allow get: if verifiedParent(family(id)) || (signedIn() && family(id).childUid == request.auth.uid);
+    allow list, delete: if false;
+    allow create, update: if progressId == 'current' && signedIn() && family(id).childUid == request.auth.uid
+     && request.resource.data.keys().hasOnly(['stateJson','updatedAt','deviceUpdatedAt'])
+     && request.resource.data.stateJson is string && request.resource.data.stateJson.size() < 500000
+     && request.resource.data.deviceUpdatedAt is number
+     && request.resource.data.updatedAt == request.time;
+   }
+  }
+ }
+}
