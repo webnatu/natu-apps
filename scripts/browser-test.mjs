@@ -12,6 +12,7 @@ try {
   const page = await context.newPage(), errors = [];
   page.on('pageerror', error => errors.push(error.message));
   page.on('dialog', dialog => dialog.accept());
+  await page.addInitScript(() => { window.__spoken = []; Object.defineProperty(window, 'speechSynthesis', { configurable: true, value: { getVoices: () => [], cancel: () => {}, speak: utterance => window.__spoken.push({ text: utterance.text, lang: utterance.lang }) } }); });
   await page.clock.install({ time: new Date('2026-10-28T14:00:00-04:00') });
   await page.goto('http://127.0.0.1:5174');
   assert.equal(await page.title(), 'Mission Lecture · Lionel');
@@ -57,12 +58,58 @@ try {
   await page.setViewportSize({ width: 1440, height: 1050 });
   assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
   await page.screenshot({ path: 'test-results/mission-lecture-desktop.png', fullPage: true });
+  // Integrated reading/writing: persistence, real UI feedback, privacy and audio wiring.
+  assert.match(await page.locator('#readingTitle').innerText(), /Le message effacé/);
+  await page.locator('#readingSize').selectOption('28');
+  await page.locator('#readingSpacing').uncheck();
+  await page.locator('#readingAnswer').fill('Lionel semble inquiet parce qu’il efface sa réponse.');
+  await page.locator('#nextQuestion').click();
+  await page.locator('#readingAnswer').fill('Il veut améliorer le projet.');
+  await page.locator('#questionHelp').click();
+  assert.match(await page.locator('#capsuleHeading').innerText(), /Justifier/);
+  await page.locator('#capsuleListen').click();
+  assert.match((await page.evaluate(() => window.__spoken.at(-1))).text, /Première étape/);
+  await page.locator('#capsuleStop').click();
+  await page.locator('#readAloud').click();
+  assert.equal((await page.evaluate(() => window.__spoken.at(-1))).lang, 'fr-CA');
+  await page.locator('#stopReading').click();
+  await page.locator('input[name="p1"][value="2"]').check();
+  await page.locator('[data-practice="p1"]').click();
+  assert.match(await page.locator('#feedback-p1').innerText(), /Reprenons les indices/);
+  await page.locator('input[name="p1"][value="0"]').check();
+  await page.locator('[data-practice="p1"]').click();
+  assert.match(await page.locator('#feedback-p1').innerText(), /appuyée par le texte/);
+  let requests = 0;
+  await page.route('https://api.languagetool.org/v2/check', async route => {
+    requests++;
+    assert.equal(new URLSearchParams(route.request().postData()).get('text'), 'Les enfant joue.');
+    await route.fulfill({ contentType: 'application/json', body: JSON.stringify({ matches: [{ offset: 4, length: 6, message: 'Accord à vérifier', replacements: [{ value: 'enfants' }] }] }) });
+  });
+  await page.locator('#writingDraft').fill('Les enfant joue.');
+  assert.equal(await page.locator('#checkGrammar').isDisabled(), true); assert.equal(requests, 0);
+  await page.locator('#checkerConsent').check(); await page.locator('#checkGrammar').click();
+  await page.waitForFunction(() => document.querySelector('#grammarResults').textContent.includes('enfants'));
+  assert.equal(requests, 1); assert.equal(await page.locator('#checkerConsent').isChecked(), false);
+  await page.locator('#writingExercise').selectOption('w2'); await page.locator('#writingDraft').fill('Sami pense à son équipe.');
+  await page.reload();
+  assert.equal(await page.locator('#readingSize').inputValue(), '28'); assert.equal(await page.locator('#readingSpacing').isChecked(), false);
+  assert.match(await page.locator('#readingAnswer').inputValue(), /semble inquiet/);
+  await page.locator('#nextQuestion').click(); assert.match(await page.locator('#readingAnswer').inputValue(), /améliorer/);
+  assert.equal(await page.locator('input[name="p1"][value="0"]').isChecked(), true);
+  assert.equal(await page.locator('#writingExercise').inputValue(), 'w2'); assert.equal(await page.locator('#writingDraft').inputValue(), 'Sami pense à son équipe.');
+  await page.locator('#writingExercise').selectOption('w1'); assert.equal(await page.locator('#writingDraft').inputValue(), 'Les enfant joue.');
+  // Taking exercises and listening does not grant additional daily XP or coins.
+  assert.equal(await page.locator('#coinBalance').innerText(), '4');
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+  await page.setViewportSize({ width: 390, height: 844 });
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+  await page.screenshot({ path: 'test-results/mission-lecture-workshop-mobile.png', fullPage: true });
   // A broken previous save must remain intact instead of being silently erased.
   await page.evaluate(() => localStorage.setItem('mission-lecture-lionel-v1', '{broken'));
   await page.reload(); assert.equal(await page.locator('#storageNotice').isVisible(), true);
   await page.locator('[data-quest="reading"]').check();
   assert.equal(await page.evaluate(() => localStorage.getItem('mission-lecture-lionel-v1')), '{broken');
   assert.deepEqual(errors, []);
-  console.log('PASS browser: daily rewards, undo/recheck, reload, local midnight rollover, streak, import/export, level, redemption persistence, safe external links, mobile/desktop overflow, malformed-save protection.');
+  console.log('PASS browser: daily rewards, undo/recheck, reload, local midnight rollover, streak, import/export, level, redemption persistence, safe external links, mobile/desktop overflow, malformed-save protection, workbook persistence, exercises/feedback, optional external correction consent and audio wiring (mocked voice/service).');
   await context.close();
 } finally { await browser?.close(); server.kill('SIGTERM'); }

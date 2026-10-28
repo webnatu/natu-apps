@@ -1,3 +1,6 @@
+import { createCoach, createPractice } from './coach.js';
+import { createWritingPanel } from './writing.js';
+import { createReadingPanel } from './reading.js';
 import { SETTINGS, localDateKey, dateFromKey, shiftDate, emptyProgress, sanitizeProgress, loadProgress, saveProgress, questRecord, setQuest, totals, redeemReward, weekDays, readingStats } from './progress.js';
 const $ = selector => document.querySelector(selector);
 const storage = { getItem: key => window.localStorage.getItem(key), setItem: (key, value) => window.localStorage.setItem(key, value) };
@@ -20,7 +23,7 @@ function progressBar(value, max, label) {
   return `<div class="progress" role="progressbar" aria-label="${escape(label)}" aria-valuemin="0" aria-valuemax="${max}" aria-valuenow="${Math.min(value, max)}"><span style="width:${Math.min(100, value / max * 100)}%"></span></div>`;
 }
 const quests = [
-  { id: 'reading', icon: '📖', title: 'Lecture en français — 15 minutes', description: 'Un livre, une BD ou une aventure sur Alloprof.', label: 'Ma lecture est terminée' },
+  { id: 'reading', icon: '📖', title: 'Lecture en français — 15 minutes', description: 'Le récit « Le message effacé », un livre ou une ressource Alloprof.', label: 'Ma lecture est terminée' },
   { id: 'homework', icon: '✏️', title: 'Mes devoirs du jour', description: 'Je termine mes devoirs et je demande de l’aide au besoin.', label: 'Mes devoirs sont terminés' },
 ];
 function renderQuests() {
@@ -28,7 +31,7 @@ function renderQuests() {
   $('#questList').innerHTML = quests.map(quest => {
     const record = questRecord(state, today, quest.id), reward = SETTINGS.quests[quest.id];
     if (record.complete) count++;
-    return `<div class="quest ${record.complete ? 'complete' : ''}"><span class="quest-icon">${quest.icon}</span><div class="quest-info"><h3>${quest.title}</h3><p>${quest.description}</p><div class="quest-rewards"><span>✦ +${reward.xp} XP</span><span>🪙 +${reward.coins} pièces</span></div><label class="check-label"><input type="checkbox" data-quest="${quest.id}" ${record.complete ? 'checked' : ''}><span>${quest.label}</span></label>${record.awarded ? '<small class="already-earned">Récompense du jour déjà reçue · aucun double gain</small>' : ''}</div>${record.complete ? '<span class="complete-mark" aria-label="Terminée">✓</span>' : ''}</div>`;
+    return `<div class="quest ${record.complete ? 'complete' : ''}"><span class="quest-icon">${quest.icon}</span><div class="quest-info"><h3>${quest.title}</h3><p>${quest.description}</p>${quest.id === 'reading' ? '<a class="story-link" href="#reading">Lire le récit et répondre aux questions ↓</a>' : ''}<div class="quest-rewards"><span>✦ +${reward.xp} XP</span><span>🪙 +${reward.coins} pièces</span></div><label class="check-label"><input type="checkbox" data-quest="${quest.id}" ${record.complete ? 'checked' : ''}><span>${quest.label}</span></label>${record.awarded ? '<small class="already-earned">Récompense du jour déjà reçue · aucun double gain</small>' : ''}</div>${record.complete ? '<span class="complete-mark" aria-label="Terminée">✓</span>' : ''}</div>`;
   }).join('');
   $('#dailyCount').textContent = `${count}/2 terminées`;
 }
@@ -64,7 +67,8 @@ function renderCalendar() {
   const date = dateFromKey(selectedDate);
   $('#selectedDay').textContent = `${formatter.format(date)} · Lecture : ${questRecord(state, date, 'reading').complete ? 'terminée' : 'non cochée'} · Devoirs : ${questRecord(state, date, 'homework').complete ? 'terminés' : 'non cochés'}`;
 }
-function render() { renderQuests(); renderStats(); renderCalendar(); }
+let readingPanel, writingPanel, coachPanel, practicePanel;
+function render() { renderQuests(); renderStats(); renderCalendar(); readingPanel?.refresh(); writingPanel?.refresh(); practicePanel?.refresh(); }
 function checkRollover() {
   const now = new Date();
   if (localDateKey(now) === localDateKey(today)) return;
@@ -114,4 +118,8 @@ window.addEventListener('storage', event => {
   if (fresh.error) { notice(fresh.error); return; }
   state = fresh.state; render(); notify('Progression mise à jour depuis un autre onglet.');
 });
+coachPanel = createCoach($('#coach'));
+practicePanel = createPractice($('#practice'), { getWorkbook: () => state.workbook, saveWorkbook: workbook => persist({ ...state, workbook }), explain: id => coachPanel.explain(id) });
+writingPanel = createWritingPanel($('#writing'), { getWorkbook: () => state.workbook, saveWorkbook: workbook => persist({ ...state, workbook }) });
+readingPanel = createReadingPanel($('#reading'), { getWorkbook: () => state.workbook, saveWorkbook: workbook => persist({ ...state, workbook }), notify, explain: id => coachPanel.explain(id) });
 render();

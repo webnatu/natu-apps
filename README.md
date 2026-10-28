@@ -50,7 +50,7 @@ Versioned daily history and collected rewards are stored under `mission-lecture-
 
 Storage failures are shown visibly. If an existing save cannot be read, it is left untouched and changes are temporary until a valid backup is imported. If saving fails because storage is blocked or full, export progress before closing. External resources need network access. Offline/PWA installation is not included in this issue's scope.
 
-History contains user-entered checkmarks, not independently verified activity. This client-only app has no authentication or anti-tampering mechanism; a person with access to browser storage or backup JSON can edit it. No analytics, remote database, or third-party scripts are loaded by the app.
+History contains user-entered checkmarks, not independently verified activity. This client-only app has no authentication or anti-tampering mechanism; a person with access to browser storage or backup JSON can edit it. No analytics, remote database, or third-party scripts are loaded by the app. The optional writing checker can send the selected draft to LanguageTool only after explicit consent and a manual verification request; see below.
 
 ## Structure
 
@@ -59,3 +59,23 @@ History contains user-entered checkmarks, not independently verified activity. T
 - `src/styles.css`, `src/icon.svg`: responsive styles and local artwork.
 - `scripts/serve.mjs`: minimal development server.
 - `tests/progress.test.mjs`, `scripts/browser-test.mjs`: unit and end-to-end checks.
+
+
+## Québec 2e secondaire reading and writing workshop
+
+The app now includes the original story **Le message effacé**, in three sections, with five scaffolded questions about emotion, motivation, inference, values, character traits and character development. It is a starting-level educational activity rather than a formally assessed curriculum resource. Prompts distinguish an idea, a textual clue and an explanation. Suggested responses remain hidden until requested; open interpretations are not automatically graded.
+
+Reading supports include selectable 18/20/24/28 px sans-serif text, optional wider spacing, short paragraphs, a vocabulary panel, and strategies for previewing, chunking, summarizing and identifying evidence. These are adjustable supports, not a treatment or a guarantee of suitability for every reader with dyslexia. They complement the student's school accommodations. The 15-minute quest is a flexible effort goal, not a deadline for finishing the story.
+
+**Milo** is an original CSS-illustrated animated guide with short step-by-step capsules on emotion/traits/values, inference, justification and revision. A help button on open questions navigates to the relevant explanation. Three fixed-answer practice questions explain mistakes and allow retrying without penalties. These are animated text-and-audio capsules, not externally hosted or prerecorded videos. Animation respects reduced-motion settings.
+
+Three writing prompts support a journal entry, Sami's point of view and an interpretive paragraph. Separate drafts, comprehension answers, practice choices, text size and spacing are included in the existing on-device save and JSON backups. Old version-1 saves acquire an empty workbook without changing their XP/history. Reading, listening, practicing and drafting do not automatically complete the mission or generate additional XP/coins.
+
+### Audio and revision
+
+- Story, capsule and draft audio use the browser's **Web Speech API**, invoked by a button tap, preferring a `fr-CA` voice and falling back to another French voice. Device/browser voice availability and network requirements vary; text always remains accessible. There are stop buttons and an unavailable-audio fallback. Real voice playback must be checked on the intended iPhone; automated tests simulate speech to verify control wiring.
+- Native browser spellcheck is enabled on writing drafts with `lang="fr-CA"`; underlining and dictionaries vary by browser. The local revision helper checks only a few basic issues (repeated words, initial capital and final punctuation) and offers a checklist. It does not claim to correct all spelling/grammar.
+- Optional **LanguageTool** verification POSTs only the selected draft and `language=fr` to `https://api.languagetool.org/v2/check`. No request runs on typing or page load. The student must explicitly consent and click the verification button; consent resets after a check and when editing/changing drafts. There is a privacy notice/link and no API key. Results are presented as suggestions, not a grade or guaranteed corrections, and are never applied automatically. General French suggestions may not match Québec usage. The public service can rate-limit or be unavailable; requests time out after 15 seconds and leave the local draft intact.
+- Live LanguageTool access was blocked by the development environment's network policy. Tests validate payloads, offsets, consent, rendering and error paths using controlled responses; they do not establish live service availability. Check the real service and voices on the deployed site before relying on them. Never put personal information in a draft sent to an external checker.
+
+Updated validation includes 21 unit tests and the browser workflow for workbook persistence, per-exercise drafts, reading preferences, retry feedback, audio-control wiring, correction consent and existing daily-reward invariants.

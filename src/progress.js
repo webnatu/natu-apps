@@ -1,3 +1,4 @@
+import { defaultWorkbook, sanitizeWorkbook } from './reading.js';
 export const STORAGE_KEY = 'mission-lecture-lionel-v1';
 export const SETTINGS = Object.freeze({
   xpPerLevel: 150,
@@ -24,10 +25,11 @@ export function shiftDate(date, offset) {
   next.setDate(next.getDate() + offset);
   return next;
 }
-export function emptyProgress() { return { version: 1, history: {}, redeemed: [] }; }
+export function emptyProgress() { return { version: 1, history: {}, redeemed: [], workbook: defaultWorkbook() }; }
 export function sanitizeProgress(value) {
   if (!value || value.version !== 1 || !value.history || typeof value.history !== 'object' || Array.isArray(value.history)) throw Error('Format invalide');
   const result = emptyProgress();
+  result.workbook = sanitizeWorkbook(value.workbook);
   for (const [key, record] of Object.entries(value.history)) {
     if (!/^\d{4}-\d{2}-\d{2}$/.test(key) || localDateKey(dateFromKey(key)) !== key || !record || typeof record !== 'object') continue;
     result.history[key] = Object.fromEntries(QUEST_IDS.map(id => [id, {
