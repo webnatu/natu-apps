@@ -1,0 +1,68 @@
+import { chromium } from 'playwright';
+import { spawn } from 'node:child_process';
+import { once } from 'node:events';
+import { mkdir } from 'node:fs/promises';
+import assert from 'node:assert/strict';
+const server = spawn(process.execPath, ['scripts/serve.mjs'], { env: { ...process.env, PORT: '5174' }, stdio: ['ignore', 'pipe', 'pipe'] });
+let browser;
+try {
+  await Promise.race([once(server.stdout, 'data'), once(server, 'exit').then(() => { throw Error('Test server failed to start'); })]);
+  browser = await chromium.launch({ ...(process.env.CHROMIUM_PATH ? { executablePath: process.env.CHROMIUM_PATH } : {}), args: ['--no-sandbox'] });
+  const context = await browser.newContext({ viewport: { width: 390, height: 844 }, timezoneId: 'America/Toronto', locale: 'fr-CA' });
+  const page = await context.newPage(), errors = [];
+  page.on('pageerror', error => errors.push(error.message));
+  page.on('dialog', dialog => dialog.accept());
+  await page.clock.install({ time: new Date('2026-10-28T14:00:00-04:00') });
+  await page.goto('http://127.0.0.1:5174');
+  assert.equal(await page.title(), 'Mission Lecture · Lionel');
+  assert.equal(await page.locator('[data-quest="reading"]').isChecked(), false);
+  await page.locator('[data-quest="reading"]').check();
+  assert.equal(await page.locator('#xpLabel').innerText(), '15 XP au total');
+  assert.equal(await page.locator('#coinBalance').innerText(), '8');
+  assert.match(await page.locator('[data-date="2026-10-28"]').getAttribute('aria-label'), /lecture terminée/);
+  await page.locator('[data-quest="reading"]').uncheck(); await page.locator('[data-quest="reading"]').check();
+  assert.equal(await page.locator('#coinBalance').innerText(), '8');
+  await page.locator('[data-quest="homework"]').check();
+  await page.reload();
+  assert.equal(await page.locator('[data-quest="reading"]').isChecked(), true);
+  assert.equal(await page.locator('[data-quest="homework"]').isChecked(), true);
+  assert.equal(await page.locator('#xpLabel').innerText(), '35 XP au total');
+  assert.equal(await page.locator('#coinBalance').innerText(), '18');
+  await page.clock.setFixedTime(new Date('2026-10-29T00:01:00-04:00'));
+  await page.evaluate(() => window.dispatchEvent(new Event('focus')));
+  assert.equal(await page.locator('[data-quest="reading"]').isChecked(), false);
+  assert.match(await page.locator('[data-date="2026-10-28"]').getAttribute('aria-label'), /lecture terminée/);
+  assert.equal(await page.locator('#streakCount').innerText(), '1');
+  await page.locator('[data-quest="reading"]').check();
+  assert.equal(await page.locator('#streakCount').innerText(), '2');
+  assert.equal(await page.locator('#xpLabel').innerText(), '50 XP au total');
+  // Real backup import exercises levels, calendar history, coin spending and reload.
+  const history = {};
+  for (let i = 1; i <= 13; i++) history[`2026-10-${String(i).padStart(2, '0')}`] = { reading: { complete: true, awarded: true } };
+  await page.locator('#importProgress').setInputFiles({ name: 'progress.json', mimeType: 'application/json', buffer: Buffer.from(JSON.stringify({ version: 1, history, redeemed: [] })) });
+  await page.waitForFunction(() => document.querySelector('#coinBalance').textContent === '104');
+  assert.match(await page.locator('#levelLabel').innerText(), /Niveau 2/);
+  await page.locator('[data-reward="cushion"]').click();
+  assert.equal(await page.locator('#coinBalance').innerText(), '4');
+  await page.reload();
+  assert.equal(await page.locator('[data-reward="cushion"]').isDisabled(), true);
+  assert.equal(await page.locator('#coinBalance').innerText(), '4');
+  const downloadEvent = page.waitForEvent('download'); await page.locator('#exportProgress').click();
+  const download = await downloadEvent; assert.match(download.suggestedFilename(), /^lionel-mission-lecture-/);
+  const links = page.locator('.resources a'); assert.equal(await links.count(), 2);
+  for (const link of await links.all()) { assert.equal(await link.getAttribute('target'), '_blank'); assert.match(await link.getAttribute('rel'), /noopener/); assert.match(await link.getAttribute('href'), /^https:\/\/www\.alloprof\.qc\.ca\//); }
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, 'No mobile horizontal overflow');
+  await mkdir('test-results', { recursive: true });
+  await page.screenshot({ path: 'test-results/mission-lecture-mobile.png', fullPage: true });
+  await page.setViewportSize({ width: 1440, height: 1050 });
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true);
+  await page.screenshot({ path: 'test-results/mission-lecture-desktop.png', fullPage: true });
+  // A broken previous save must remain intact instead of being silently erased.
+  await page.evaluate(() => localStorage.setItem('mission-lecture-lionel-v1', '{broken'));
+  await page.reload(); assert.equal(await page.locator('#storageNotice').isVisible(), true);
+  await page.locator('[data-quest="reading"]').check();
+  assert.equal(await page.evaluate(() => localStorage.getItem('mission-lecture-lionel-v1')), '{broken');
+  assert.deepEqual(errors, []);
+  console.log('PASS browser: daily rewards, undo/recheck, reload, local midnight rollover, streak, import/export, level, redemption persistence, safe external links, mobile/desktop overflow, malformed-save protection.');
+  await context.close();
+} finally { await browser?.close(); server.kill('SIGTERM'); }

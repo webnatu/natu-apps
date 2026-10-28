@@ -1,0 +1,36 @@
+<!doctype html>
+<html lang="fr-CA">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1">
+<meta name="theme-color" content="#123f3b"><meta name="description" content="Les missions de lecture en français de Lionel : petits pas, grandes aventures.">
+<title>Mission Lecture · Lionel</title>
+<link rel="icon" href="src/icon.svg" type="image/svg+xml"><link rel="stylesheet" href="src/styles.css">
+<script type="module" src="src/app.js"></script>
+</head>
+<body>
+<a class="skip" href="#main">Aller aux missions</a>
+<div class="shell">
+<header class="header"><a href="#" class="brand" aria-label="Mission Lecture, accueil"><span class="brand-mark">m<span>✦</span></span><span>mission<span class="brand-light">lecture</span></span></a><span class="profile"><span class="avatar">L</span> L’explorateur Lionel</span></header>
+<main id="main" tabindex="-1">
+<div class="intro"><div><p class="eyebrow">LE CLUB DES PETITS EXPLORATEURS</p><h1>Une page de plus,<br>une aventure de <em>plus.</em></h1><p class="intro-copy">Salut Lionel ! Chaque petit effort te fait grandir.<br>Prêt à découvrir ta mission du jour ?</p></div><div class="date-pill" id="todayDate"></div></div>
+<div id="storageNotice" role="alert" hidden></div>
+<div class="dashboard">
+<div class="primary">
+<section class="adventure" aria-labelledby="adventureTitle"><div class="adventure-copy"><span class="tag">TON AVENTURE DU JOUR</span><h2 id="adventureTitle">La forêt des<br>histoires infinies</h2><p>Un livre, un coin tranquille,<br>et tout un monde à explorer.</p><a class="light-button" href="#quests">C’est parti <span aria-hidden="true">↗</span></a></div><div class="forest" role="img" aria-label="Un renard lit un livre dans une forêt étoilée"><span class="sun"></span><span class="spark s1">✦</span><span class="spark s2">✧</span><span class="tree t1"></span><span class="tree t2"></span><span class="tree t3"></span><span class="hill"></span><span class="fox">🦊</span><span class="book">📖</span><span class="mushroom">🍄</span><span class="plant">🌱</span></div></section>
+<section class="card" id="quests" aria-labelledby="questTitle"><div class="section-heading"><div><p class="eyebrow">UN PETIT PAS À LA FOIS</p><h2 id="questTitle">Mes missions du jour</h2></div><span class="counter" id="dailyCount"></span></div><div id="questList"></div><div class="manual-note"><span aria-hidden="true">ⓘ</span> Tu coches toi-même tes missions. Les activités sur Alloprof ne sont pas vérifiées par cette application.</div></section>
+<section class="card" aria-labelledby="weekTitle"><div class="section-heading"><div><p class="eyebrow">LES PETITS EFFORTS S’ADDITIONNENT</p><h2 id="weekTitle">Ma semaine de lecture</h2></div><span id="weekCount" class="week-count"></span></div><div id="weekCalendar" class="week-calendar"></div><p id="streakNote" class="caption"></p></section>
+<section class="card" aria-labelledby="resourceTitle"><div class="section-heading"><div><p class="eyebrow">LE COIN DES CURIEUX</p><h2 id="resourceTitle">Une histoire t’attend</h2></div><span aria-hidden="true">📚</span></div><p class="caption">Des ressources Alloprof pour lire en français au Québec.</p><div class="resources"><a class="resource grimoire" href="https://www.alloprof.qc.ca/fr/eleves/bv/jeux/grimoire" target="_blank" rel="noopener noreferrer"><span class="resource-icon">🔮</span><span><strong>Grimoire</strong><small>Un jeu pour le plaisir de lire</small><span class="link-label">Jouer sur Alloprof ↗</span></span></a><a class="resource" href="https://www.alloprof.qc.ca/fr/eleves/bv/francais/les-types-de-questions-en-lecture-primaire-f1723" target="_blank" rel="noopener noreferrer"><span class="resource-icon">📗</span><span><strong>Lecture · 3e à 6e année</strong><small>Comprendre et explorer un texte</small><span class="link-label">Explorer Alloprof ↗</span></span></a></div><p class="tiny">Les ressources s’ouvrent dans un nouvel onglet. Choisis avec un adulte ce qui convient à ton niveau.</p></section>
+</div>
+<aside class="secondary" aria-label="Ma progression et mes récompenses">
+<section class="card explorer"><div class="explorer-avatar">🦊<span>✦</span></div><p class="eyebrow">MON CARNET D’EXPLORATEUR</p><h2>Lionel</h2><span class="level-tag" id="levelLabel"></span><div class="xp-heading"><span>Expérience</span><strong id="xpLabel"></strong></div><div id="xpBar"></div><p class="tiny" id="nextLevel"></p><div class="stats"><div><span>🪙</span><strong id="coinBalance"></strong><small>pièces disponibles</small></div><div><span>🔥</span><strong id="streakCount"></strong><small>jours de suite</small></div></div></section>
+<section class="card rewards" aria-labelledby="rewardTitle"><div class="section-heading"><h2 id="rewardTitle">Mes trésors</h2><span aria-hidden="true">🎁</span></div><p class="caption">Tes pièces décorent ton coin lecture.<br>Petit à petit, il devient magique.</p><div id="rewardList"></div></section>
+<section class="kind-note"><span aria-hidden="true">☀</span><h3>Tu peux être fier de toi.</h3><p>Même les petits pas comptent.<br>Une journée manquée n’efface<br>jamais tes efforts.</p></section>
+</aside>
+</div>
+<section class="card history-card" aria-labelledby="historyTitle"><div class="section-heading"><div><p class="eyebrow">LES SOUVENIRS DE TES EFFORTS</p><h2 id="historyTitle">Mon calendrier</h2></div><div class="month-navigation"><button id="previousMonth" aria-label="Mois précédent">←</button><span id="monthLabel"></span><button id="nextMonth" aria-label="Mois suivant">→</button></div></div><div id="monthCalendar" class="month-calendar"></div><p class="caption">📖 Lecture terminée · ✏️ Devoirs terminés · les journées sans mission restent disponibles.</p><p id="selectedDay" class="selected-day" role="status"></p></section>
+<section class="backup"><div><strong>Ton aventure reste sur cet appareil.</strong><p>La progression se sauvegarde automatiquement dans ce navigateur, sans compte ni synchronisation.</p></div><div class="backup-actions"><button id="exportProgress">Exporter ma sauvegarde</button><label class="import-button">Importer<input id="importProgress" type="file" accept="application/json,.json" aria-label="Importer une sauvegarde"></label></div></section>
+</main>
+<footer><span class="footer-logo">✦ missionlecture</span><span>Fait pour Lionel. Pour le plaisir de lire.</span><span>Petits pas. Grandes aventures.</span></footer>
+</div><div id="announcement" class="toast" role="status" aria-live="polite"></div>
+<noscript><p>Active JavaScript pour afficher tes missions et sauvegarder ta progression.</p></noscript>
+</body></html>
