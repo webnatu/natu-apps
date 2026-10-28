@@ -1,3 +1,5 @@
+import { evaluatePunctuation, PUNCTUATION_EXERCISES } from '../src/punctuation.js';
+import { markedWords } from '../src/reading.js';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { emptyProgress, sanitizeProgress, totals } from '../src/progress.js';
@@ -9,7 +11,7 @@ test('old saves migrate with empty workbook without affecting balances', () => {
   const state = sanitizeProgress(old); assert.deepEqual(state.workbook, defaultWorkbook()); assert.equal(totals(state).xp, 15);
 });
 test('answers, separate drafts, practice attempts and preferences round-trip in backup', () => {
-  const state = emptyProgress(); state.workbook = { answers: { q1: 'Il semble inquiet.' }, writings: { w1: 'Mon journal.', w2: 'Sami raconte.' }, practiceAnswers: { p1: 0, p2: 2 }, selectedWriting: 'w2', fontSize: 28, wideSpacing: false };
+  const state = emptyProgress(); state.workbook = { ...defaultWorkbook(), answers: { q1: 'Il semble inquiet.' }, writings: { w1: 'Mon journal.', w2: 'Sami raconte.' }, practiceAnswers: { p1: 0, p2: 2 }, selectedWriting: 'w2', fontSize: 28, wideSpacing: false };
   assert.deepEqual(sanitizeProgress(JSON.parse(JSON.stringify(state))).workbook, state.workbook);
 });
 test('workbook import bounds text lengths and ignores unknown IDs and invalid preferences', () => {
@@ -32,4 +34,28 @@ test('French check rejects oversized text, rate limits and malformed responses',
   await assert.rejects(checkFrench('x'.repeat(4001)), /4 000/);
   await assert.rejects(checkFrench('Texte.', { fetcher: async () => ({ ok: false, status: 429 }) }), /trop de demandes/);
   await assert.rejects(checkFrench('Texte.', { fetcher: async () => ({ ok: true, json: async () => ({}) }) }), /inattendue/);
+});
+
+test('punctuation explanations distinguish intended meaning and allow retries', () => {
+  for (const exercise of PUNCTUATION_EXERCISES) {
+    const correct = evaluatePunctuation(exercise.id, exercise.correct);
+    assert.equal(correct.correct, true); assert.ok(correct.model); assert.ok(correct.explanation.length > 70);
+    assert.equal(evaluatePunctuation(exercise.id, (exercise.correct + 1) % 3).correct, false);
+  }
+  assert.equal(evaluatePunctuation('unknown', 0), null);
+  assert.equal(evaluatePunctuation('pun1', -1), null);
+  assert.equal(evaluatePunctuation('pun1', 100), null);
+});
+test('tracking preferences, punctuation attempts and written exercise round-trip', () => {
+  const state = emptyProgress(); Object.assign(state.workbook, { wordMarkers: true, lineGuide: true, readingWord: 12, punctuationIndex: 2, punctuationAnswers: { pun1: { choice: 1, checked: true } }, punctuationDraft: 'Sami demande : « Tu es prêt ? »' });
+  assert.deepEqual(sanitizeProgress(JSON.parse(JSON.stringify(state))).workbook, state.workbook);
+  const old = sanitizeProgress({ version: 1, history: {}, redeemed: [] }); assert.equal(old.workbook.wordMarkers, false); assert.equal(old.workbook.lineGuide, false);
+});
+test('tracking and punctuation backup inputs are bounded and sanitized', () => {
+  const workbook = sanitizeWorkbook({ readingWord: -5, punctuationIndex: 99, wordMarkers: 'true', punctuationDraft: 'a'.repeat(3000), punctuationAnswers: { pun1: { choice: 99, checked: true }, pun2: { choice: 1, checked: true }, invalid: { choice: 0 } } });
+  assert.equal(workbook.readingWord, 0); assert.equal(workbook.punctuationIndex, 0); assert.equal(workbook.wordMarkers, false); assert.equal(workbook.punctuationDraft.length, 2000); assert.deepEqual(workbook.punctuationAnswers, { pun2: { choice: 1, checked: true } });
+});
+test('word tracking escapes content and leaves standalone punctuation unwrapped', () => {
+  assert.equal(markedWords('« Sami ? »'), '« <span class="read-word">Sami</span> ? »');
+  assert.ok(markedWords('<script>').includes('&lt;script&gt;'));
 });

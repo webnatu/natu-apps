@@ -27,10 +27,17 @@ export const QUESTIONS = [
   { id: 'q4', topic: 'Valeur et psychologie', prompt: 'Que ressent Sami lorsqu’il dit : « On était deux » ? Qu’est-ce qui est important pour lui dans un travail d’équipe ?', scaffold: 'Sami pourrait ressentir… Il semble accorder de l’importance à… L’expression… le montre parce que…', guide: 'Sami peut être déçu ou frustré de ne pas avoir été consulté. Le mot « notre » et « On était deux » suggèrent qu’il valorise la collaboration ou le respect. Une émotion est passagère; une valeur est ce qui compte pour la personne.' },
   { id: 'q5', topic: 'Évolution et trait de caractère', prompt: 'Comment Lionel change-t-il entre le début et la fin ? Quel trait de caractère sa décision de dire la vérité peut-elle révéler ?', scaffold: 'Au début, il… À la fin, il… Le changement se produit parce que… Sa décision peut montrer qu’il est… puisque…', guide: 'Au début, il évite le problème et semble tendu. À la fin, il avoue son erreur et accepte de chercher une solution avec Sami; ses épaules se détendent. On peut parler d’honnêteté ou de courage en justifiant avec son aveu. Un trait est une façon d’être; une émotion est un état ressenti à un moment donné.' }
 ];
-export function defaultWorkbook() { return { answers: {}, writings: {}, practiceAnswers: {}, selectedWriting: 'w1', fontSize: 20, wideSpacing: true }; }
+export function defaultWorkbook() { return { answers: {}, writings: {}, practiceAnswers: {}, punctuationAnswers: {}, punctuationDraft: '', punctuationIndex: 0, wordMarkers: false, lineGuide: false, readingWord: 0, selectedWriting: 'w1', fontSize: 20, wideSpacing: true }; }
 export function sanitizeWorkbook(value) {
   const result = defaultWorkbook();
   if (!value || typeof value !== 'object') return result;
+  if (typeof value.wordMarkers === 'boolean') result.wordMarkers = value.wordMarkers;
+  if (typeof value.lineGuide === 'boolean') result.lineGuide = value.lineGuide;
+  if (Number.isInteger(value.readingWord) && value.readingWord >= 0 && value.readingWord <= 3000) result.readingWord = value.readingWord;
+  if (Number.isInteger(value.punctuationIndex) && value.punctuationIndex >= 0 && value.punctuationIndex < 6) result.punctuationIndex = value.punctuationIndex;
+  if (typeof value.punctuationDraft === 'string') result.punctuationDraft = value.punctuationDraft.slice(0, 2000);
+  for (const id of ['pun1', 'pun2', 'pun3', 'pun4', 'pun5', 'pun6']) { const answer = value.punctuationAnswers?.[id]; if (Number.isInteger(answer?.choice) && answer.choice >= 0 && answer.choice < 3) result.punctuationAnswers[id] = { choice: answer.choice, checked: answer.checked === true }; }
+
   for (const id of ['p1', 'p2', 'p3']) if (Number.isInteger(value.practiceAnswers?.[id]) && value.practiceAnswers[id] >= 0 && value.practiceAnswers[id] <= 2) result.practiceAnswers[id] = value.practiceAnswers[id];
   if (['w1', 'w2', 'w3'].includes(value.selectedWriting)) result.selectedWriting = value.selectedWriting;
   for (const id of ['w1', 'w2', 'w3']) if (typeof value.writings?.[id] === 'string') result.writings[id] = value.writings[id].slice(0, 4000);
@@ -39,15 +46,16 @@ export function sanitizeWorkbook(value) {
   for (const { id } of QUESTIONS) if (typeof value.answers?.[id] === 'string') result.answers[id] = value.answers[id].slice(0, 2000);
   return result;
 }
+export function markedWords(value) { return value.split(/(\s+)/u).map(token => /\p{L}/u.test(token) ? `<span class="read-word">${escape(token)}</span>` : escape(token)).join(''); }
 const escape = value => String(value).replace(/[&<>"']/g, c => ({ '&': '&amp;', '<': '&lt;', '>': '&gt;', '"': '&quot;', "'": '&#39;' }[c]));
 export function createReadingPanel(root, { getWorkbook, saveWorkbook, notify, explain }) {
   let activeQuestion = 0, currentSpeech = null;
   root.innerHTML = `<div class="section-heading"><div><p class="eyebrow">FRANÇAIS · QUÉBEC · 2e SECONDAIRE</p><h2 id="readingTitle">Le message effacé</h2></div><span class="counter">Récit original</span></div>
     <p class="caption">Lis à ton rythme, par petites sections. Tu peux répondre à voix haute avant d’écrire. Tu n’as pas à terminer le texte en 15 minutes.</p>
-    <div class="reading-tools" aria-label="Confort de lecture"><label>Taille du texte <select id="readingSize"><option value="18">18 px</option><option value="20">20 px</option><option value="24">24 px</option><option value="28">28 px</option></select></label><label><input type="checkbox" id="readingSpacing"> Espacement aéré</label><div class="speech-buttons"><button type="button" id="techniqueVideo">Voir les techniques en vidéo</button><button id="readAloud">Écouter le récit</button><button id="stopReading" disabled>Arrêter</button></div></div>
+    <div class="reading-tools" aria-label="Confort de lecture"><label>Taille du texte <select id="readingSize"><option value="18">18 px</option><option value="20">20 px</option><option value="24">24 px</option><option value="28">28 px</option></select></label><label><input type="checkbox" id="readingSpacing"> Espacement aéré</label><label><input type="checkbox" id="wordMarkers"> Points au-dessus des mots</label><label><input type="checkbox" id="lineGuide"> Guide de ligne</label><div class="speech-buttons"><button type="button" id="techniqueVideo">Voir les techniques en vidéo</button><button id="readAloud">Écouter le récit</button><button id="stopReading" disabled>Arrêter</button></div></div>
     <p class="tiny" id="speechStatus" role="status">La lecture audio dépend des voix de ton appareil; certaines voix nécessitent Internet.</p>
     <details class="reading-strategies"><summary>Mes stratégies de lecture</summary><ol><li><strong>Avant :</strong> je lis le titre et les questions. Je prédis le sujet sans chercher la bonne réponse tout de suite.</li><li><strong>Par morceaux :</strong> je lis une section à la fois. Je peux utiliser une règle ou mon doigt pour suivre une ligne, si cela m’aide.</li><li><strong>Je fais une pause :</strong> je résume le passage en une phrase, à voix haute ou par écrit.</li><li><strong>Je repère :</strong> qui agit, ce qu’il fait, dit ou pense. Je distingue ce qui est écrit de ce que je déduis.</li><li><strong>Si je bloque :</strong> je relis la phrase, je cherche le sens avec le contexte, puis je demande de l’aide au besoin.</li><li><strong>Je justifie :</strong> mon idée → un indice du texte → une explication du lien.</li></ol><p>Essaie un outil à la fois et garde ce qui t’aide. Ces stratégies accompagnent les adaptations de ton école; elles ne les remplacent pas.</p></details><details class="reading-vocabulary"><summary>Avant de lire : quelques repères</summary><p><strong>Conclusion :</strong> dernière partie d’un travail. <strong>Corridor :</strong> passage entre les locaux. <strong>Inférence :</strong> idée que tu déduis à partir d’indices.</p><p><strong>Émotion :</strong> ce qu’on ressent à un moment précis. <strong>Trait de caractère :</strong> façon d’être. <strong>Valeur :</strong> ce qui compte pour une personne. <strong>Motivation :</strong> ce qui la pousse à agir.</p></details>
-    <section class="symbol-training" aria-labelledby="symbolTitle"><h3 id="symbolTitle">Je repère les petits signes</h3><p>Choisis un exemple pour voir comment un signe aide à comprendre. Les signes se lisent avec les lettres et le contexte.</p><div class="symbol-buttons"><button type="button" data-symbol="question">La question ?</button><button type="button" data-symbol="accent">ou / où</button><button type="button" data-symbol="dialogue">Les paroles « … »</button></div><p id="symbolExample" class="symbol-example"></p><p id="symbolExplanation" role="status"></p></section><article class="story-text" aria-label="Le message effacé">${STORY.map(section => `<section><h3>${section.title}</h3>${section.paragraphs.map(p => `<p>${escape(p)}</p>`).join('')}</section>`).join('')}</article>
+    <section class="symbol-training" aria-labelledby="symbolTitle"><h3 id="symbolTitle">Je repère les petits signes</h3><p>Choisis un exemple pour voir comment un signe aide à comprendre. Les signes se lisent avec les lettres et le contexte.</p><div class="symbol-buttons"><button type="button" data-symbol="question">La question ?</button><button type="button" data-symbol="accent">ou / où</button><button type="button" data-symbol="dialogue">Les paroles « … »</button></div><p id="symbolExample" class="symbol-example"></p><p id="symbolExplanation" role="status"></p></section><p class="tiny">Les points sont des repères visuels, pas des accents ni une méthode pour deviner les mots. Tu peux les désactiver s’ils te gênent. Continue à lire les lettres et à vérifier le sens.</p><div id="markerControls" class="marker-controls" hidden><button type="button" id="previousWord">← Mot précédent</button><button type="button" id="nextWord">Mot suivant →</button><span id="markerStatus" role="status"></span></div><article class="story-text" aria-label="Le message effacé">${STORY.map(section => `<section><h3>${section.title}</h3>${section.paragraphs.map(p => `<p>${markedWords(p)}</p>`).join('')}</section>`).join('')}</article>
     <div class="reading-finish"><a href="#quests" class="light-button">Retourner cocher ma mission ↑</a><p class="tiny">Écouter ou répondre ne coche pas automatiquement la mission et ne donne pas de points supplémentaires.</p></div>
     <section class="comprehension" aria-labelledby="comprehensionTitle"><p class="eyebrow">COMPRENDRE LES PERSONNAGES</p><h3 id="comprehensionTitle">Une idée → un indice → une explication</h3><p class="caption">Pas de note automatique. Plusieurs réponses sont possibles si tu les appuies sur le texte.</p><div class="question-nav"><button id="previousQuestion" aria-label="Question précédente">← Précédente</button><span id="questionNumber"></span><button id="nextQuestion" aria-label="Question suivante">Suivante →</button></div><div id="questionContent"></div><p class="tiny" id="answerStatus" role="status">Les réponses sont enregistrées sur cet appareil avec ta progression.</p></section>`;
   const examples = {
@@ -64,6 +72,26 @@ export function createReadingPanel(root, { getWorkbook, saveWorkbook, notify, ex
   root.querySelector('.symbol-buttons').onclick = event => { const button = event.target.closest('[data-symbol]'); if (button) showSymbol(button.dataset.symbol); };
   root.querySelector('#techniqueVideo').onclick = () => explain('symbols'); showSymbol('question');
   const size = root.querySelector('#readingSize'), spacing = root.querySelector('#readingSpacing'), text = root.querySelector('.story-text');
+  const words = [...text.querySelectorAll('.read-word')], markers = root.querySelector('#wordMarkers'), guide = root.querySelector('#lineGuide');
+  const band = document.createElement('div'); band.className = 'reading-line'; band.setAttribute('aria-hidden', 'true'); text.prepend(band);
+  function placeGuide() {
+    const settings = getWorkbook(), index = Math.min(settings.readingWord || 0, words.length - 1), word = words[index];
+    band.hidden = !settings.lineGuide || !word;
+    if (!band.hidden) { const box = word.getBoundingClientRect(), parent = text.getBoundingClientRect(), height = parseFloat(getComputedStyle(word).lineHeight); band.style.top = `${box.top - parent.top - (height - box.height) / 2}px`; band.style.height = `${height}px`; }
+  }
+  function updateMarkers() {
+    const settings = getWorkbook(), index = Math.min(settings.readingWord || 0, words.length - 1), enabled = settings.wordMarkers || settings.lineGuide;
+    markers.checked = settings.wordMarkers; guide.checked = settings.lineGuide; text.classList.toggle('word-markers', settings.wordMarkers);
+    root.querySelector('#markerControls').hidden = !enabled;
+    words.forEach((word, i) => word.classList.toggle('current-word', enabled && i === index));
+    root.querySelector('#markerStatus').textContent = enabled ? `Mot ${index + 1}/${words.length} : ${words[index]?.textContent || ''}` : '';
+    root.querySelector('#previousWord').disabled = index === 0; root.querySelector('#nextWord').disabled = index === words.length - 1; placeGuide();
+  }
+  markers.onchange = () => { saveWorkbook({ ...getWorkbook(), wordMarkers: markers.checked }); updateMarkers(); };
+  guide.onchange = () => { saveWorkbook({ ...getWorkbook(), lineGuide: guide.checked }); updateMarkers(); };
+  for (const [id, direction] of [['#previousWord', -1], ['#nextWord', 1]]) root.querySelector(id).onclick = () => { const index = Math.max(0, Math.min(words.length - 1, (getWorkbook().readingWord || 0) + direction)); saveWorkbook({ ...getWorkbook(), readingWord: index }); updateMarkers(); words[index].scrollIntoView({ block: 'nearest', behavior: 'instant' }); };
+  text.addEventListener('click', event => { const word = event.target.closest('.read-word'); if (!word || !(getWorkbook().wordMarkers || getWorkbook().lineGuide)) return; saveWorkbook({ ...getWorkbook(), readingWord: words.indexOf(word) }); updateMarkers(); });
+  if ('ResizeObserver' in window) new ResizeObserver(placeGuide).observe(text); else window.addEventListener('resize', placeGuide);
   function renderQuestion() {
     const q = QUESTIONS[activeQuestion];
     root.querySelector('#questionNumber').textContent = `${activeQuestion + 1} / ${QUESTIONS.length}`;
@@ -80,7 +108,7 @@ export function createReadingPanel(root, { getWorkbook, saveWorkbook, notify, ex
   for (const [id, direction] of [['#previousQuestion', -1], ['#nextQuestion', 1]]) root.querySelector(id).onclick = () => { activeQuestion += direction; renderQuestion(); root.querySelector('#readingAnswer').focus({ preventScroll: true }); };
   function refresh() {
     const workbook = getWorkbook(); size.value = String(workbook.fontSize); spacing.checked = workbook.wideSpacing;
-    text.style.fontSize = `${workbook.fontSize}px`; text.classList.toggle('wide-spacing', workbook.wideSpacing);
+    text.style.fontSize = `${workbook.fontSize}px`; text.classList.toggle('wide-spacing', workbook.wideSpacing); updateMarkers();
     const answer = root.querySelector('#readingAnswer'); if (answer) answer.value = workbook.answers[QUESTIONS[activeQuestion].id] || '';
   }
   size.onchange = () => { saveWorkbook({ ...getWorkbook(), fontSize: Number(size.value) }); refresh(); };

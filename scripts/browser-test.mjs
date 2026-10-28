@@ -77,6 +77,33 @@ try {
   await page.screenshot({ path: 'test-results/mission-lecture-desktop.png', fullPage: true });
   // Integrated reading/writing: persistence, real UI feedback, privacy and audio wiring.
   assert.match(await page.locator('#readingTitle').innerText(), /Le message effacé/);
+  const originalParagraphs = await page.locator('.story-text section p').allTextContents();
+  await page.locator('#wordMarkers').check(); await page.locator('#lineGuide').check();
+  assert.equal(await page.locator('.story-text').evaluate(e => e.classList.contains('word-markers')), true);
+  assert.equal(await page.locator('.reading-line').isVisible(), true);
+  assert.equal(await page.locator('#previousWord').isDisabled(), true);
+  await page.locator('#nextWord').click(); assert.match(await page.locator('#markerStatus').innerText(), /Mot 2\//);
+  await page.locator('.read-word').nth(9).click(); assert.match(await page.locator('#markerStatus').innerText(), /Mot 10\//);
+  assert.deepEqual(await page.locator('.story-text section p').allTextContents(), originalParagraphs);
+  await page.locator('#checkPunctuation').click(); assert.match(await page.locator('#punctuationFeedback').innerText(), /Choisis/);
+  await page.locator('input[name="punctuationChoice"][value="1"]').check(); await page.locator('#checkPunctuation').click();
+  assert.match(await page.locator('#punctuationFeedback').innerText(), /Regardons/);
+  await page.locator('input[name="punctuationChoice"][value="0"]').check(); await page.locator('#checkPunctuation').click();
+  assert.match(await page.locator('#punctuationFeedback').innerText(), /Oui, ce signe/);
+  await page.locator('#punctuationNext').click();
+  await page.locator('input[name="punctuationChoice"][value="1"]').check(); await page.locator('#checkPunctuation').click();
+  assert.match(await page.locator('#punctuationFeedback').innerText(), /interrogation/);
+  await page.locator('#punctuationDraft').fill('Sami demande : « Tu es prêt ? »');
+  await page.reload();
+  assert.equal(await page.locator('#wordMarkers').isChecked(), true); assert.equal(await page.locator('#lineGuide').isChecked(), true);
+  assert.match(await page.locator('#markerStatus').innerText(), /Mot 10\//);
+  assert.equal(await page.locator('#punctuationNumber').innerText(), '2 / 6');
+  assert.equal(await page.locator('input[name="punctuationChoice"][value="1"]').isChecked(), true);
+  assert.match(await page.locator('#punctuationDraft').inputValue(), /Tu es prêt/);
+  await page.setViewportSize({ width: 320, height: 844 });
+  assert.equal(await page.evaluate(() => document.documentElement.scrollWidth <= innerWidth), true, 'Tracking and punctuation fit narrow mobile');
+  await page.setViewportSize({ width: 390, height: 844 });
+
   await page.locator('#readingSize').selectOption('28');
   await page.locator('#readingSpacing').uncheck();
   await page.locator('#readingAnswer').fill('Lionel semble inquiet parce qu’il efface sa réponse.');
@@ -129,6 +156,6 @@ try {
   await page.locator('[data-quest="reading"]').check();
   assert.equal(await page.evaluate(() => localStorage.getItem('mission-lecture-lionel-v1')), '{broken');
   assert.deepEqual(errors, []);
-  console.log('PASS browser: daily rewards, undo/recheck, reload, local midnight rollover, streak, import/export, level, redemption persistence, safe external links, mobile/desktop overflow, malformed-save protection, workbook persistence, exercises/feedback, optional external correction consent and audio wiring (mocked voice/service), five MP4 playback/metadata checks, range requests and symbol demonstrations.');
+  console.log('PASS browser: daily rewards, undo/recheck, reload, local midnight rollover, streak, import/export, level, redemption persistence, safe external links, mobile/desktop overflow, malformed-save protection, workbook persistence, exercises/feedback, optional external correction consent and audio wiring (mocked voice/service), five MP4 playback/metadata checks, range requests, symbol demonstrations, visual tracking, punctuation feedback/retries and saved punctuation drafts.');
   await context.close();
 } finally { await browser?.close(); server.kill('SIGTERM'); }

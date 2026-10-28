@@ -1,3 +1,4 @@
+import { createPunctuationPanel } from './punctuation.js';
 import { createCoach, createPractice } from './coach.js';
 import { createWritingPanel } from './writing.js';
 import { createReadingPanel } from './reading.js';
@@ -67,8 +68,8 @@ function renderCalendar() {
   const date = dateFromKey(selectedDate);
   $('#selectedDay').textContent = `${formatter.format(date)} · Lecture : ${questRecord(state, date, 'reading').complete ? 'terminée' : 'non cochée'} · Devoirs : ${questRecord(state, date, 'homework').complete ? 'terminés' : 'non cochés'}`;
 }
-let readingPanel, writingPanel, coachPanel, practicePanel;
-function render() { renderQuests(); renderStats(); renderCalendar(); readingPanel?.refresh(); writingPanel?.refresh(); practicePanel?.refresh(); }
+let readingPanel, writingPanel, coachPanel, practicePanel, punctuationPanel;
+function render() { renderQuests(); renderStats(); renderCalendar(); readingPanel?.refresh(); writingPanel?.refresh(); practicePanel?.refresh(); punctuationPanel?.refresh(); }
 function checkRollover() {
   const now = new Date();
   if (localDateKey(now) === localDateKey(today)) return;
@@ -120,6 +121,7 @@ window.addEventListener('storage', event => {
 });
 coachPanel = createCoach($('#coach'));
 practicePanel = createPractice($('#practice'), { getWorkbook: () => state.workbook, saveWorkbook: workbook => persist({ ...state, workbook }), explain: id => coachPanel.explain(id) });
+punctuationPanel = createPunctuationPanel($('#punctuation'), { getWorkbook: () => state.workbook, saveWorkbook: workbook => persist({ ...state, workbook }), explain: id => coachPanel.explain(id) });
 writingPanel = createWritingPanel($('#writing'), { getWorkbook: () => state.workbook, saveWorkbook: workbook => persist({ ...state, workbook }) });
 readingPanel = createReadingPanel($('#reading'), { getWorkbook: () => state.workbook, saveWorkbook: workbook => persist({ ...state, workbook }), notify, explain: id => coachPanel.explain(id) });
 render();
