@@ -16,6 +16,23 @@ try {
   await page.clock.install({ time: new Date('2026-10-28T14:00:00-04:00') });
   await page.goto('http://127.0.0.1:5174');
   assert.equal(await page.title(), 'Mission Lecture · Lionel');
+  // Decode every bundled MP4 in the real browser; service/voice mocks do not affect video audio tracks.
+  for (const topic of ['emotion', 'inference', 'evidence', 'revision', 'symbols']) {
+    await page.locator('#capsuleTopic').selectOption(topic);
+    await page.waitForFunction(() => document.querySelector('#capsuleVideo').readyState >= 1);
+    assert.ok(await page.locator('#capsuleVideo').evaluate(v => Number.isFinite(v.duration) && v.duration > 20));
+    await page.locator('#capsuleVideo').evaluate(async v => { v.muted = true; await v.play(); });
+    await page.waitForFunction(() => document.querySelector('#capsuleVideo').currentTime > 0.05);
+    await page.locator('#capsuleVideo').evaluate(v => v.pause());
+    assert.match(await page.locator('#capsuleCaptions').getAttribute('src'), /\.fr\.vtt$/);
+  }
+  const range = await page.request.get('http://127.0.0.1:5174/src/media/emotion.mp4', { headers: { Range: 'bytes=0-255' } });
+  assert.equal(range.status(), 206); assert.equal((await range.body()).length, 256);
+  await page.locator('[data-symbol="accent"]').click();
+  assert.match(await page.locator('#symbolExplanation').innerText(), /même façon/);
+  await page.locator('#techniqueVideo').click();
+  assert.equal(await page.locator('#capsuleTopic').inputValue(), 'symbols');
+
   assert.equal(await page.locator('[data-quest="reading"]').isChecked(), false);
   await page.locator('[data-quest="reading"]').check();
   assert.equal(await page.locator('#xpLabel').innerText(), '15 XP au total');
@@ -66,9 +83,11 @@ try {
   await page.locator('#nextQuestion').click();
   await page.locator('#readingAnswer').fill('Il veut améliorer le projet.');
   await page.locator('#questionHelp').click();
+  assert.equal(await page.locator('#capsuleTopic').inputValue(), 'evidence');
+  await page.locator('.capsule-transcript summary').click();
   assert.match(await page.locator('#capsuleHeading').innerText(), /Justifier/);
   await page.locator('#capsuleListen').click();
-  assert.match((await page.evaluate(() => window.__spoken.at(-1))).text, /Première étape/);
+  assert.match((await page.evaluate(() => window.__spoken.at(-1))).text, /Pour justifier/);
   await page.locator('#capsuleStop').click();
   await page.locator('#readAloud').click();
   assert.equal((await page.evaluate(() => window.__spoken.at(-1))).lang, 'fr-CA');
@@ -110,6 +129,6 @@ try {
   await page.locator('[data-quest="reading"]').check();
   assert.equal(await page.evaluate(() => localStorage.getItem('mission-lecture-lionel-v1')), '{broken');
   assert.deepEqual(errors, []);
-  console.log('PASS browser: daily rewards, undo/recheck, reload, local midnight rollover, streak, import/export, level, redemption persistence, safe external links, mobile/desktop overflow, malformed-save protection, workbook persistence, exercises/feedback, optional external correction consent and audio wiring (mocked voice/service).');
+  console.log('PASS browser: daily rewards, undo/recheck, reload, local midnight rollover, streak, import/export, level, redemption persistence, safe external links, mobile/desktop overflow, malformed-save protection, workbook persistence, exercises/feedback, optional external correction consent and audio wiring (mocked voice/service), five MP4 playback/metadata checks, range requests and symbol demonstrations.');
   await context.close();
 } finally { await browser?.close(); server.kill('SIGTERM'); }

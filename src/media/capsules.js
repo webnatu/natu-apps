@@ -1,0 +1,129 @@
+/* Original capsule scripts and bundled-media metadata. */
+export const VIDEO_CAPSULES = [
+  {
+    "id": "emotion",
+    "title": "Émotion, trait ou valeur ?",
+    "scenes": [
+      {
+        "label": "Une émotion",
+        "example": "Lionel tire sur sa manche.",
+        "cue": "Un geste + une situation → une émotion possible",
+        "narration": "Une émotion décrit ce que le personnage ressent à un moment précis. Lionel tire sur sa manche avant de parler à Sami. Ce geste, dans cette situation, peut montrer de l'inquiétude. Un seul geste ne prouve pas toujours une émotion : on vérifie le contexte."
+      },
+      {
+        "label": "Un trait de caractère",
+        "example": "Il avoue son erreur.",
+        "cue": "Une décision peut révéler du courage.",
+        "narration": "Un trait de caractère décrit une façon d'être. En avouant son erreur malgré sa peur, Lionel peut montrer du courage ou de l'honnêteté. Pour justifier ce trait, explique sa décision avec un indice précis."
+      },
+      {
+        "label": "Une valeur",
+        "example": "« On était deux. »",
+        "cue": "Sami semble valoriser la collaboration.",
+        "narration": "Une valeur est ce qui compte pour une personne. Quand Sami dit : On était deux, il semble accorder de l'importance à la collaboration. Une émotion, un trait et une valeur ne désignent donc pas la même chose."
+      }
+    ]
+  },
+  {
+    "id": "inference",
+    "title": "Faire une inférence",
+    "scenes": [
+      {
+        "label": "Ce qui est écrit",
+        "example": "Lionel efface sa réponse.",
+        "cue": "C’est une information explicite.",
+        "narration": "Commence par ce que le texte dit vraiment. Lionel efface sa réponse. Cette action est racontée directement : c'est une information explicite."
+      },
+      {
+        "label": "Ce que je déduis",
+        "example": "Il pourrait craindre d’être jugé.",
+        "cue": "Je relie plusieurs indices.",
+        "narration": "Le texte dit aussi qu'il évite le regard de Sami et attend que les autres élèves s'éloignent. Tu peux déduire qu'il pourrait craindre leur jugement. Cette idée n'est pas écrite telle quelle : c'est une inférence."
+      },
+      {
+        "label": "Je vérifie mon idée",
+        "example": "Mon idée → mes indices → mon lien",
+        "cue": "Une autre interprétation est possible si elle est justifiée.",
+        "narration": "Vérifie maintenant ton interprétation. Quels indices l'appuient ? Est-elle compatible avec les événements ? Plusieurs interprétations peuvent être défendues. Il faut expliquer le lien entre ton idée et les indices."
+      }
+    ]
+  },
+  {
+    "id": "evidence",
+    "title": "Justifier ma réponse",
+    "scenes": [
+      {
+        "label": "1. Mon idée",
+        "example": "Sami semble déçu.",
+        "cue": "Je réponds à la question.",
+        "narration": "Pour justifier une réponse, avance une étape à la fois. D'abord, formule ton idée. Par exemple : Sami semble déçu. Assure-toi que ton idée répond à la question posée."
+      },
+      {
+        "label": "2. Mon indice",
+        "example": "Il dit : « On était deux. »",
+        "cue": "Je choisis un passage précis.",
+        "narration": "Ensuite, relève un indice précis. Sami dit : On était deux, lorsqu'il apprend que Lionel a modifié leur projet sans lui. Tu peux citer un court passage ou le reformuler fidèlement."
+      },
+      {
+        "label": "3. Mon explication",
+        "example": "Il aurait voulu participer à la décision.",
+        "cue": "J’explique pourquoi cet indice appuie mon idée.",
+        "narration": "Enfin, explique le lien : cette remarque suggère qu'il aurait voulu participer à la décision. Tu as maintenant une idée, un indice et une explication. Une citation toute seule ne suffit pas."
+      }
+    ]
+  },
+  {
+    "id": "revision",
+    "title": "Relire sans tout faire à la fois",
+    "scenes": [
+      {
+        "label": "Le sens d’abord",
+        "example": "Est-ce que je réponds à la consigne ?",
+        "cue": "Je peux dire mon idée avant de l’écrire.",
+        "narration": "Commence par le sens de ton brouillon, sans tout corriger en même temps. As-tu répondu à la consigne ? Tu peux dire ton idée à voix haute, puis l'écrire en quelques phrases."
+      },
+      {
+        "label": "Une vérification à la fois",
+        "example": "Le sujet → le verbe → la ponctuation",
+        "cue": "Je relis une phrase, puis la suivante.",
+        "narration": "Relis une phrase à la fois, ou écoute ton brouillon. Repère le sujet et son verbe. Fais ensuite un passage pour la ponctuation, puis un autre pour quelques accords. Utilise la liste de révision à ton rythme."
+      },
+      {
+        "label": "Les outils donnent des pistes",
+        "example": "Une suggestion n’est pas une obligation.",
+        "cue": "Je vérifie le contexte avant de modifier.",
+        "narration": "Un correcteur peut aider, mais il peut manquer une erreur ou proposer un changement qui ne convient pas. Vérifie le contexte. Demander de l'aide et recommencer une étape fait partie du travail d'écriture."
+      }
+    ]
+  },
+  {
+    "id": "symbols",
+    "title": "Les signes qui aident à lire",
+    "scenes": [
+      {
+        "label": "Je repère les accents",
+        "example": "é    è    ê    ï",
+        "cue": "L’accent fait partie du mot.",
+        "narration": "Les petits signes font partie de l'écriture. L'accent aigu, l'accent grave, l'accent circonflexe et le tréma donnent des informations sur un mot, sa prononciation ou son orthographe. On regarde le signe avec les lettres, pas à la place des lettres."
+      },
+      {
+        "label": "Je repère la ponctuation",
+        "example": ".    ?    !    « … »",
+        "cue": "Une fin, une question, une exclamation, des paroles",
+        "narration": "La ponctuation aide à comprendre la phrase. Le point marque une fin. Le point d'interrogation annonce une question. Le point d'exclamation souligne une expression forte. Les guillemets peuvent encadrer les paroles d'un personnage ou une citation."
+      },
+      {
+        "label": "Je lis par petites unités",
+        "example": "pré  /  sen  /  ta  /  tion",
+        "cue": "Je rassemble les parties, puis je relis la phrase.",
+        "narration": "Si un mot te bloque, tu peux le découper en petites unités, selon les stratégies travaillées avec ton école. Ici : présentation. Tu rassembles les parties, puis tu relis la phrase pour vérifier le sens. Ne devine pas seulement le mot d'après sa silhouette."
+      },
+      {
+        "label": "Je fais une pause de sens",
+        "example": "Qui agit ? Que se passe-t-il ?",
+        "cue": "Une phrase de résumé, puis je continue.",
+        "narration": "Après un petit passage, fais une pause. Qui agit ? Que se passe-t-il ? Résume l'essentiel avec tes mots. Si le sens t'échappe, relis une courte section ou utilise l'audio avec le texte. Garde les outils qui t'aident et les adaptations de ton école."
+      }
+    ]
+  }
+];
